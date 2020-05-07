@@ -21,6 +21,7 @@ import org.apache.dubbo.common.utils.NetUtils;
 import org.apache.dubbo.rpc.Exporter;
 import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.RpcException;
+import org.apache.dubbo.rpc.model.ApplicationModel;
 import org.apache.dubbo.rpc.protocol.dubbo.support.ProtocolUtils;
 
 import org.junit.jupiter.api.AfterEach;
@@ -37,7 +38,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static org.apache.dubbo.common.constants.CommonConstants.CALLBACK_INSTANCES_LIMIT_KEY;
 
-public class ExplicitCallbackTest {
+public class ArgumentCallbackTest {
 
     protected Exporter<IDemoService> exporter = null;
     protected Exporter<IHelloService> hello_exporter = null;
@@ -57,11 +58,14 @@ public class ExplicitCallbackTest {
         // export one service first, to test connection sharing
         serviceURL = serviceURL.addParameter("connections", 1);
         URL hellourl = serviceURL.setPath(IHelloService.class.getName());
+        ApplicationModel.getServiceRepository().registerService(IDemoService.class);
+        ApplicationModel.getServiceRepository().registerService(IHelloService.class);
         hello_exporter = ProtocolUtils.export(new HelloServiceImpl(), IHelloService.class, hellourl);
         exporter = ProtocolUtils.export(new DemoServiceImpl(), IDemoService.class, serviceURL);
     }
 
     void referService() {
+        ApplicationModel.getServiceRepository().registerService(IDemoService.class);
         demoProxy = (IDemoService) ProtocolUtils.refer(IDemoService.class, consumerUrl);
     }
 
@@ -91,6 +95,7 @@ public class ExplicitCallbackTest {
     }
 
     public void destroyService() {
+        ApplicationModel.getServiceRepository().destroy();
         demoProxy = null;
         try {
             if (exporter != null) exporter.unexport();
@@ -243,8 +248,8 @@ public class ExplicitCallbackTest {
     @Test
     public void startProvider() throws Exception {
         exportService();
-        synchronized (ExplicitCallbackTest.class) {
-            ExplicitCallbackTest.class.wait();
+        synchronized (ArgumentCallbackTest.class) {
+            ArgumentCallbackTest.class.wait();
         }
     }
 
